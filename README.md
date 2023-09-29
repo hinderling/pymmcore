@@ -51,7 +51,15 @@ bug](https://github.com/micro-manager/pymmcore/issues). To manually build from
 source, the scripts in `.github/workflows` should serve as a starting point.
 
 You also need a working installation of the Micro-Manager application.
+Main steps:
+```
+python setup.py build_ext
+python setup.py build
+python setup.py bdist_wheel
 
+python -m pip install dist/pymmcore-*.whl --force-reinstall --user
+python ../pymmcore/smoketest/smoke.py
+```
 
 Quick example
 -------------
