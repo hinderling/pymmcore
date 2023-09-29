@@ -1016,8 +1016,25 @@ class CMMCore:
         """For SLM devices with build-in light source (such as projectors),
 
         this will set the exposure time, but not (yet) start the illumination"""
-    def setSLMImage(self, slmLabel: str, pixels: Any) -> None:
-        """Write a 32-bit color image to the SLM."""
+    @overload
+    def setSLMImage(self, slmLabel: str, pixels: np.ndarray[bool], pixel_on_value: int = 1) -> None:
+        """
+        Write a binary image to the SLM. The input should be a 2D numpy array of bools.
+        True values will be replaced with the pixel_on_value (Default is 1).
+        """
+
+    @overload
+    def setSLMImage(self, slmLabel: str, pixels: np.ndarray[np.uint8]) -> None:
+        """
+        Write a 8-bit grayscale image to the SLM. The input should be a 2D numpy array of uint8s.
+        """
+
+    @overload
+    def setSLMImage(self, slmLabel: str, pixels: np.ndarray[np.uint8, np.uint8, np.uint8]) -> None:
+        """
+        Write a 32-bit color image to the SLM. The input should be a 3D numpy array with 3 color channels 
+        of uint8s. The dimensions of the array should match the width and height of the SLM.
+        """
     @overload
     def setSLMPixelsTo(self, slmLabel: str, intensity: int) -> None:
         """Set all SLM pixels to a single 8-bit intensity."""

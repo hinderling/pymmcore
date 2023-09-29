@@ -183,30 +183,62 @@ import_array();
 }
 
 %rename(setSLMImage) setSLMImage_pywrap;
-%apply (char *STRING, int LENGTH) { (char *pixels, int receivedLength) };
+%apply (PyObject *INPUT, int LENGTH) { (PyObject *pixels, int receivedLength) };
 %extend CMMCore {
-void setSLMImage_pywrap(const char* slmLabel, char *pixels, int receivedLength) throw (CMMError)
-{
-    // TODO This size check is done here (instead of in MMCore) because the
-    // CMMCore::setSLMImage() interface is deficient: it does not include a
-    // length parameter. It will be better to change the CMMCore functions to
-    // require a length and move this check there.
+    void setSLMImage_pywrap(const char* slmLabel, PyObject *pixels, int pixel_on_value = 1) throw (CMMError)
+    {
+        // Check if pixels is a numpy array
+        if (!PyArray_Check(pixels)) {
+            throw CMMError("Pixels must be a numpy array");
+        }
 
-    long expectedLength = self->getSLMWidth(slmLabel) * self->getSLMHeight(slmLabel);
+        // Get the dimensions of the numpy array
+        PyArrayObject* np_pixels = reinterpret_cast<PyArrayObject*>(pixels);
+        int nd = PyArray_NDIM(np_pixels);
+        npy_intp* dims = PyArray_DIMS(np_pixels);
 
-    if (receivedLength == expectedLength)
-    {
-        self->setSLMImage(slmLabel, (unsigned char *)pixels);
+        // Check if the array has the correct shape
+        long expectedWidth = self->getSLMWidth(slmLabel);
+        long expectedHeight = self->getSLMHeight(slmLabel);
+        if (dims[0] != expectedHeight || dims[1] != expectedWidth) {
+            oss << "Image dimensions are wrong for this SLM. Expected (" << expectedHeight << ", " << expectedWidth << "), but received (" << dims[0] << ", " << dims[1] << ")";
+            throw CMMError(oss.str());
+        }
+
+        if (PyArray_TYPE(np_pixels) == NPY_BOOL && nd == 2) {
+            // For 2D binary array, replace TRUE values with pixel_on_value
+            std::vector<unsigned char> vec_pixels(expectedWidth * expectedHeight);
+            for (npy_intp i = 0; i < expectedHeight; ++i) {
+                for (npy_intp j = 0; j < expectedWidth; ++j) {
+                    vec_pixels[i * expectedWidth + j] = *static_cast<bool*>(PyArray_GETPTR2(np_pixels, i, j)) ? pixel_on_value : 0;
+                }
+            }
+            self->setSLMImage(slmLabel, vec_pixels.data());
+        } else if (PyArray_TYPE(np_pixels) == NPY_UINT8 && nd == 2) {
+            // For 2D 8-bit array, cast integers directly to unsigned char
+            std::vector<unsigned char> vec_pixels(expectedWidth * expectedHeight);
+            for (npy_intp i = 0; i < expectedHeight; ++i) {
+                for (npy_intp j = 0; j < expectedWidth; ++j) {
+                    vec_pixels[i * expectedWidth + j] = static_cast<unsigned char>(*static_cast<uint8_t*>(PyArray_GETPTR2(np_pixels, i, j)));
+                }
+            }
+            self->setSLMImage(slmLabel, vec_pixels.data());
+        } else if (PyArray_TYPE(np_pixels) == NPY_UINT8 && nd == 3 && dims[2] == 3) {
+            // For 3D color array, convert to imgRGB32 and add a 4th byte for the alpha channel
+            std::vector<unsigned char> vec_pixels(4 * expectedWidth * expectedHeight);
+            for (npy_intp i = 0; i < expectedHeight; ++i) {
+                for (npy_intp j = 0; j < expectedWidth; ++j) {
+                    for (npy_intp k = 0; k < 3; ++k) {
+                        vec_pixels[4 * (i * expectedWidth + j) + k] = static_cast<unsigned char>(*static_cast<uint8_t*>(PyArray_GETPTR3(np_pixels, i, j, k)));
+                    }
+                    vec_pixels[4 * (i * expectedWidth + j) + 3] = 0;  // Set the alpha channel to 0
+                }
+            }
+            self->setSLMImage(slmLabel, reinterpret_cast<imgRGB32*>(vec_pixels.data()));
+        } else {
+            throw CMMError("Pixels must be a 2D numpy array of bools or uint8s, or a 3D numpy array with 3 color channels");
+        }
     }
-    else if (receivedLength == 4*expectedLength)
-    {
-        self->setSLMImage(slmLabel, (imgRGB32)pixels);
-    }
-    else
-    {
-        throw CMMError("Image dimensions are wrong for this SLM");
-    }
-}
 }
 %ignore setSLMImage;
 
