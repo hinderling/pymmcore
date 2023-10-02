@@ -1022,19 +1022,16 @@ class CMMCore:
         Write a binary image to the SLM. The input should be a 2D numpy array of bools.
         True values will be replaced with the pixel_on_value (Default is 1).
         """
-
     @overload
     def setSLMImage(self, slmLabel: str, pixels: np.ndarray[np.uint8]) -> None:
         """
         Write a 8-bit grayscale image to the SLM. The input should be a 2D numpy array of uint8s.
         """
-
     @overload
     def setSLMImage(self, slmLabel: str, pixels: np.ndarray[np.uint32]) -> None:
         """
         Write a 32-bit grayscale image to the SLM. The input should be a 2D numpy array of uint32s.
         """
-
     @overload
     def setSLMImage(self, slmLabel: str, pixels: np.ndarray[np.uint8, np.uint8, np.uint8]) -> None:
         """
@@ -1047,6 +1044,9 @@ class CMMCore:
     @overload
     def setSLMPixelsTo(self, slmLabel: str, red: int, green: int, blue: int) -> None:
         """Set all SLM pixels to an RGB color."""
+    @overload
+    def setSLMImage(self, slmLabel: str, pixels: Any) -> None:
+        """Write a 32-bit color image to the SLM."""
     def setStageLinearSequence(
         self, stageLabel: str, dZ_um: float, nSlices: int
     ) -> None:

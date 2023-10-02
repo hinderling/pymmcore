@@ -184,7 +184,33 @@ import_array();
 
 %rename(setSLMImage) setSLMImage_pywrap;
 %apply (PyObject *INPUT, int LENGTH) { (PyObject *pixels, int receivedLength) };
+%apply (char *STRING, int LENGTH) { (char *pixels, int receivedLength) };
 %extend CMMCore {
+    // This is a wrapper for setSLMImage that accepts a list of chars
+    void setSLMImage_pywrap(const char* slmLabel, char *pixels, int receivedLength) throw (CMMError)
+    {
+        // TODO This size check is done here (instead of in MMCore) because the
+        // CMMCore::setSLMImage() interface is deficient: it does not include a
+        // length parameter. It will be better to change the CMMCore functions to
+        // require a length and move this check there.
+
+        long expectedLength = self->getSLMWidth(slmLabel) * self->getSLMHeight(slmLabel);
+
+        if (receivedLength == expectedLength)
+        {
+            self->setSLMImage(slmLabel, (unsigned char *)pixels);
+        }
+        else if (receivedLength == 4*expectedLength)
+        {
+            self->setSLMImage(slmLabel, (imgRGB32)pixels);
+        }
+        else
+        {
+            throw CMMError("Image dimensions are wrong for this SLM");
+        }
+    }
+
+    // This is a wrapper for setSLMImage that accepts a numpy array
     void setSLMImage_pywrap(const char* slmLabel, PyObject *pixels, int pixel_on_value = 1) throw (CMMError)
     {
         // Check if pixels is a numpy array
@@ -207,7 +233,6 @@ import_array();
             throw CMMError(oss.str().c_str());
         }
 
-
         if (PyArray_TYPE(np_pixels) == NPY_BOOL && nd == 2) {
             // For 2D binary array, replace TRUE values with pixel_on_value
             std::vector<unsigned char> vec_pixels(expectedWidth * expectedHeight);
@@ -228,7 +253,6 @@ import_array();
             }
             self->setSLMImage(slmLabel, vec_pixels.data());
 
-
         } else if (PyArray_TYPE(np_pixels) == NPY_UINT32 && nd == 2) {
             // For 2D 32-bit array, cast integers directly to unsigned char
             std::vector<unsigned char> vec_pixels(4* expectedWidth * expectedHeight); // 4 bytes for uint32
@@ -242,7 +266,6 @@ import_array();
                 }
             }
             self->setSLMImage(slmLabel, vec_pixels.data());
-
 
         } else if (PyArray_TYPE(np_pixels) == NPY_UINT8 && nd == 3 && dims[2] == 3) {
             // For 3D color array, convert to imgRGB32 and add a 4th byte for the alpha channel
