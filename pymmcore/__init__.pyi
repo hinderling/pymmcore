@@ -1030,6 +1030,12 @@ class CMMCore:
         """
 
     @overload
+    def setSLMImage(self, slmLabel: str, pixels: np.ndarray[np.uint32]) -> None:
+        """
+        Write a 32-bit grayscale image to the SLM. The input should be a 2D numpy array of uint32s.
+        """
+
+    @overload
     def setSLMImage(self, slmLabel: str, pixels: np.ndarray[np.uint8, np.uint8, np.uint8]) -> None:
         """
         Write a 32-bit color image to the SLM. The input should be a 3D numpy array with 3 color channels 

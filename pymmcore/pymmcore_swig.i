@@ -228,9 +228,25 @@ import_array();
             }
             self->setSLMImage(slmLabel, vec_pixels.data());
 
+
+        } else if (PyArray_TYPE(np_pixels) == NPY_UINT32 && nd == 2) {
+            // For 2D 32-bit array, cast integers directly to unsigned char
+            std::vector<unsigned char> vec_pixels(4* expectedWidth * expectedHeight); // 4 bytes for uint32
+            for (npy_intp i = 0; i < expectedHeight; ++i) {
+                for (npy_intp j = 0; j < expectedWidth; ++j) {
+                    uint32_t value = *static_cast<uint32_t*>(PyArray_GETPTR2(np_pixels, i, j));
+                    vec_pixels[(i * expectedWidth + j) * 4 + 0] = (value >> 24) & 0xFF; // Extract bytes from uint32
+                    vec_pixels[(i * expectedWidth + j) * 4 + 1] = (value >> 16) & 0xFF;
+                    vec_pixels[(i * expectedWidth + j) * 4 + 2] = (value >> 8) & 0xFF;
+                    vec_pixels[(i * expectedWidth + j) * 4 + 3] = value & 0xFF;
+                }
+            }
+            self->setSLMImage(slmLabel, vec_pixels.data());
+
+
         } else if (PyArray_TYPE(np_pixels) == NPY_UINT8 && nd == 3 && dims[2] == 3) {
             // For 3D color array, convert to imgRGB32 and add a 4th byte for the alpha channel
-            std::vector<unsigned char> vec_pixels(4 * expectedWidth * expectedHeight);
+            std::vector<unsigned char> vec_pixels(4 * expectedWidth * expectedHeight); // 4*1 byte for RGBA
             for (npy_intp i = 0; i < expectedHeight; ++i) {
                 for (npy_intp j = 0; j < expectedWidth; ++j) {
                     for (npy_intp k = 0; k < 3; ++k) {
