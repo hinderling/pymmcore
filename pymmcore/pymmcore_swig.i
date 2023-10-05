@@ -276,7 +276,7 @@ import_array();
             for (npy_intp j = 0; j < expectedWidth; ++j) {
                 unsigned int pixel = 0;
                 for (npy_intp k = 0; k < 3; ++k) {
-                    uint8_t value = *static_cast<uint8_t*>(PyArray_GETPTR3(np_pixels, i, j, k));
+                    uint8_t value = *static_cast<uint8_t*>(PyArray_GETPTR3(np_pixels, i, j, 2 - k)); // Reverse the order of RGB
                     pixel |= static_cast<unsigned int>(value) << (8 * k);
                     //std::cout << "Pixel[" << i << "][" << j << "][" << k << "] = " << static_cast<int>(value) << std::endl;
                 }
