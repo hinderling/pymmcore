@@ -270,23 +270,23 @@ import_array();
 
     } else if (PyArray_TYPE(np_pixels) == NPY_UINT8 && nd == 3 && dims[2] == 3) {
         // For 3D color array, convert to imgRGB32 and add a 4th byte for the alpha channel
-        std::vector<int> vec_pixels(expectedWidth * expectedHeight); // 1 int (4 bytes) for RGBA
+        std::vector<unsigned int> vec_pixels(expectedWidth * expectedHeight); // 1 imgRGB32 for RGBA
         std::cout << "Starting loop over pixels" << std::endl;
         for (npy_intp i = 0; i < expectedHeight; ++i) {
             for (npy_intp j = 0; j < expectedWidth; ++j) {
-                int pixel = 0;
+                unsigned int pixel = 0;
                 for (npy_intp k = 0; k < 3; ++k) {
                     uint8_t value = *static_cast<uint8_t*>(PyArray_GETPTR3(np_pixels, i, j, k));
-                    pixel |= static_cast<int>(value) << (8 * k);
-                    std::cout << "Pixel[" << i << "][" << j << "][" << k << "] = " << static_cast<int>(value) << std::endl;
+                    pixel |= static_cast<unsigned int>(value) << (8 * k);
+                    //std::cout << "Pixel[" << i << "][" << j << "][" << k << "] = " << static_cast<int>(value) << std::endl;
                 }
                 // Set the alpha channel to 0
                 vec_pixels[i * expectedWidth + j] = pixel;
-                std::cout << "vec_pixels[" << (i * expectedWidth + j) << "] = " << pixel << std::endl;
+                //std::cout << "vec_pixels[" << (i * expectedWidth + j) << "] = " << pixel << std::endl;
             }
         }
         std::cout << "Finished loop over pixels" << std::endl;
-        self->setSLMImage(slmLabel, reinterpret_cast<imgRGB32&>(*vec_pixels.data()));
+        self->setSLMImage(slmLabel, vec_pixels.data());
     } else {
         throw CMMError("Pixels must be a 2D numpy array of bools or uint8s, or a 3D numpy array with 3 color channels");
     }
