@@ -206,7 +206,7 @@ import_array();
         }
         else
         {
-            throw CMMError("Pixels must be a 2D numpy array [h,w] of uint8s , or a 3D numpy array [h,w,c] of uint8s with 3 color channels [R,G,B]");
+            throw CMMError("Pixels must be a 2D numpy array [h,w] of uint8, or a 3D numpy array [h,w,c] of uint8 with 3 color channels [R,G,B]");
         }
     }
 
@@ -243,25 +243,24 @@ import_array();
             }
             self->setSLMImage(slmLabel, vec_pixels.data());
 
-
-    } else if (PyArray_TYPE(np_pixels) == NPY_UINT8 && nd == 3 && dims[2] == 3) {
-        // For 3D color array, convert to imgRGB32 and add a 4th byte for the alpha channel
-        std::vector<unsigned int> vec_pixels(expectedWidth * expectedHeight); // 1 imgRGB32 for RGBA
-        for (npy_intp i = 0; i < expectedHeight; ++i) {
-            for (npy_intp j = 0; j < expectedWidth; ++j) {
-                unsigned int pixel = 0;
-                for (npy_intp k = 0; k < 3; ++k) {
-                    uint8_t value = *static_cast<uint8_t*>(PyArray_GETPTR3(np_pixels, i, j, 2 - k)); // Reverse the order of RGB
-                    pixel |= static_cast<unsigned int>(value) << (8 * k);
+        } else if (PyArray_TYPE(np_pixels) == NPY_UINT8 && nd == 3 && dims[2] == 3) {
+            // For 3D color array, convert to imgRGB32 and add a 4th byte for the alpha channel
+            std::vector<unsigned int> vec_pixels(expectedWidth * expectedHeight); // 1 imgRGB32 for RGBA
+            for (npy_intp i = 0; i < expectedHeight; ++i) {
+                for (npy_intp j = 0; j < expectedWidth; ++j) {
+                    unsigned int pixel = 0;
+                    for (npy_intp k = 0; k < 3; ++k) {
+                        uint8_t value = *static_cast<uint8_t*>(PyArray_GETPTR3(np_pixels, i, j, 2 - k)); // Reverse the order of RGB
+                        pixel |= static_cast<unsigned int>(value) << (8 * k);
+                    }
+                    // Set the alpha channel to 0
+                    vec_pixels[i * expectedWidth + j] = pixel;
                 }
-                // Set the alpha channel to 0
-                vec_pixels[i * expectedWidth + j] = pixel;
             }
+            self->setSLMImage(slmLabel, vec_pixels.data());
+        } else {
+        throw CMMError("Pixels must be a 2D numpy array [h,w] of uint8, or a 3D numpy array [h,w,c] of uint8 with 3 color channels [R,G,B]");
         }
-        self->setSLMImage(slmLabel, vec_pixels.data());
-    } else {
-        throw CMMError("Pixels must be a 2D numpy array [h,w] of uint8s , or a 3D numpy array [h,w,c] of uint8s with 3 color channels [R,G,B]");
-    }
     }
 }
 
