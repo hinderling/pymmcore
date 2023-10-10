@@ -235,15 +235,15 @@ import_array();
 
         if (PyArray_TYPE(np_pixels) != NPY_UINT8) {
             std::ostringstream oss;
-            oss << "Pixel array type is wrong. Expected: " << NPY_UINT8 << ", but received: " << PyArray_TYPE(np_pixels);
+            oss << "Pixel array type is wrong. Expected uint8.";
             throw CMMError(oss.str().c_str());
         }
         
         npy_intp num_bytes = PyArray_NBYTES(np_pixels);
-        long expectedBytes = expectedWidth * expectedHeight * self->getBytesPerPixel(slmLabel);
+        long expectedBytes = expectedWidth * expectedHeight * self->getSLMBytesPerPixel(slmLabel);
         if (num_bytes > expectedBytes) {
             std::ostringstream oss;
-            oss << "Number of bytes per pixel in pixels is greater than expected. Received: " << num_bytes/(dims[0] * dims[1]) << ", Expected: " << self->getBytesPerPixel(slmLabel);
+            oss << "Number of bytes per pixel in pixels is greater than expected. Received: " << num_bytes/(dims[0] * dims[1]) << ", Expected: " << self->getSLMBytesPerPixel(slmLabel)<< ". Does this SLM support RGB?";
             throw CMMError(oss.str().c_str());
         }
 
