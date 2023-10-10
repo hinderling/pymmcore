@@ -1014,39 +1014,28 @@ class CMMCore:
         """Sets the current slm device."""
     def setSLMExposure(self, slmLabel: str, exposure_ms: float) -> None:
         """For SLM devices with build-in light source (such as projectors),
-
         this will set the exposure time, but not (yet) start the illumination"""
-    @overload
-    def setSLMImage(self, slmLabel: str, pixels: np.ndarray[bool], pixel_on_value: int = 1) -> None:
-        """
-        Write a binary image to the SLM. The input should be a 2D numpy array of bools.
-        True values will be replaced with the pixel_on_value (Default is 1).
-        """
     @overload
     def setSLMImage(self, slmLabel: str, pixels: np.ndarray[np.uint8]) -> None:
         """
-        Write a 8-bit grayscale image to the SLM. The input should be a 2D numpy array of uint8s.
-        """
-    @overload
-    def setSLMImage(self, slmLabel: str, pixels: np.ndarray[np.uint32]) -> None:
-        """
-        Write a 32-bit grayscale image to the SLM. The input should be a 2D numpy array of uint32s.
+        Write a 8-bit grayscale image to the SLM. Pixels must be a 2D numpy array [h,w] of uint8s.
+        Warning: SLM might convert grayscale to binary internally.
         """
     @overload
     def setSLMImage(self, slmLabel: str, pixels: np.ndarray[np.uint8, np.uint8, np.uint8]) -> None:
         """
-        Write a 32-bit color image to the SLM. The input should be a 3D numpy array with 3 color channels 
-        of uint8s. The dimensions of the array should match the width and height of the SLM.
+        Write a color image to the SLM (imgRGB32). The pixels must be 3D numpy array [h,w,c] of uint8s with 3 color channels [R,G,B].
+        The dimensions of the array should match the width and height of the SLM.
         """
+    @overload
+    def setSLMImage(self, slmLabel: str, pixels: Any) -> None:
+        """Write a list of chars to the SLM. Length of the list must match the number of pixels (or 4*number of pixels to write an imgRGB32.)"""
     @overload
     def setSLMPixelsTo(self, slmLabel: str, intensity: int) -> None:
         """Set all SLM pixels to a single 8-bit intensity."""
     @overload
     def setSLMPixelsTo(self, slmLabel: str, red: int, green: int, blue: int) -> None:
         """Set all SLM pixels to an RGB color."""
-    @overload
-    def setSLMImage(self, slmLabel: str, pixels: Any) -> None:
-        """Write a 32-bit color image to the SLM."""
     def setStageLinearSequence(
         self, stageLabel: str, dZ_um: float, nSlices: int
     ) -> None:

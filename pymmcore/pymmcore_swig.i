@@ -206,12 +206,12 @@ import_array();
         }
         else
         {
-            throw CMMError("Image dimensions are wrong for this SLM");
+            throw CMMError("Pixels must be a 2D numpy array [h,w] of uint8s , or a 3D numpy array [h,w,c] of uint8s with 3 color channels [R,G,B]");
         }
     }
 
     // This is a wrapper for setSLMImage that accepts a numpy array
-    void setSLMImage_pywrap(const char* slmLabel, PyObject *pixels, int pixel_on_value = 1) throw (CMMError)
+    void setSLMImage_pywrap(const char* slmLabel, PyObject *pixels) throw (CMMError)
     {
         // Check if pixels is a numpy array
         if (!PyArray_Check(pixels)) {
@@ -233,17 +233,7 @@ import_array();
             throw CMMError(oss.str().c_str());
         }
 
-        if (PyArray_TYPE(np_pixels) == NPY_BOOL && nd == 2) {
-            // For 2D binary array, replace TRUE values with pixel_on_value
-            std::vector<unsigned char> vec_pixels(expectedWidth * expectedHeight);
-            for (npy_intp i = 0; i < expectedHeight; ++i) {
-                for (npy_intp j = 0; j < expectedWidth; ++j) {
-                    vec_pixels[i * expectedWidth + j] = *static_cast<bool*>(PyArray_GETPTR2(np_pixels, i, j)) ? pixel_on_value : 0;
-                }
-            }
-            self->setSLMImage(slmLabel, vec_pixels.data());
-            
-        } else if (PyArray_TYPE(np_pixels) == NPY_UINT8 && nd == 2) {
+        if (PyArray_TYPE(np_pixels) == NPY_UINT8 && nd == 2) {
             // For 2D 8-bit array, cast integers directly to unsigned char
             std::vector<unsigned char> vec_pixels(expectedWidth * expectedHeight);
             for (npy_intp i = 0; i < expectedHeight; ++i) {
@@ -253,42 +243,24 @@ import_array();
             }
             self->setSLMImage(slmLabel, vec_pixels.data());
 
-        } else if (PyArray_TYPE(np_pixels) == NPY_UINT32 && nd == 2) {
-            // For 2D 32-bit array, cast integers directly to unsigned char 
-            // (only works for MightexPolygon which converts it into a grayscale image)
-            std::vector<unsigned char> vec_pixels(4* expectedWidth * expectedHeight); // 4 bytes for uint32
-            for (npy_intp i = 0; i < expectedHeight; ++i) {
-                for (npy_intp j = 0; j < expectedWidth; ++j) {
-                    uint32_t value = *static_cast<uint32_t*>(PyArray_GETPTR2(np_pixels, i, j));
-                    vec_pixels[(i * expectedWidth + j) * 4 + 0] = (value >> 24) & 0xFF; // Extract bytes from uint32
-                    vec_pixels[(i * expectedWidth + j) * 4 + 1] = (value >> 16) & 0xFF;
-                    vec_pixels[(i * expectedWidth + j) * 4 + 2] = (value >> 8) & 0xFF;
-                    vec_pixels[(i * expectedWidth + j) * 4 + 3] = value & 0xFF;
-                }
-            }
-            self->setSLMImage(slmLabel, vec_pixels.data());
 
     } else if (PyArray_TYPE(np_pixels) == NPY_UINT8 && nd == 3 && dims[2] == 3) {
         // For 3D color array, convert to imgRGB32 and add a 4th byte for the alpha channel
         std::vector<unsigned int> vec_pixels(expectedWidth * expectedHeight); // 1 imgRGB32 for RGBA
-        std::cout << "Starting loop over pixels" << std::endl;
         for (npy_intp i = 0; i < expectedHeight; ++i) {
             for (npy_intp j = 0; j < expectedWidth; ++j) {
                 unsigned int pixel = 0;
                 for (npy_intp k = 0; k < 3; ++k) {
                     uint8_t value = *static_cast<uint8_t*>(PyArray_GETPTR3(np_pixels, i, j, 2 - k)); // Reverse the order of RGB
                     pixel |= static_cast<unsigned int>(value) << (8 * k);
-                    //std::cout << "Pixel[" << i << "][" << j << "][" << k << "] = " << static_cast<int>(value) << std::endl;
                 }
                 // Set the alpha channel to 0
                 vec_pixels[i * expectedWidth + j] = pixel;
-                //std::cout << "vec_pixels[" << (i * expectedWidth + j) << "] = " << pixel << std::endl;
             }
         }
-        std::cout << "Finished loop over pixels" << std::endl;
         self->setSLMImage(slmLabel, vec_pixels.data());
     } else {
-        throw CMMError("Pixels must be a 2D numpy array of bools or uint8s, or a 3D numpy array with 3 color channels");
+        throw CMMError("Pixels must be a 2D numpy array [h,w] of uint8s , or a 3D numpy array [h,w,c] of uint8s with 3 color channels [R,G,B]");
     }
     }
 }
