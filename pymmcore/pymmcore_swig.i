@@ -233,6 +233,20 @@ import_array();
             throw CMMError(oss.str().c_str());
         }
 
+        if (PyArray_TYPE(np_pixels) != NPY_UINT8) {
+            std::ostringstream oss;
+            oss << "Pixel array type is wrong. Expected: " << NPY_UINT8 << ", but received: " << PyArray_TYPE(np_pixels);
+            throw CMMError(oss.str().c_str());
+        }
+        
+        npy_intp num_bytes = PyArray_NBYTES(np_pixels);
+        long expectedBytes = expectedWidth * expectedHeight * self->getBytesPerPixel(slmLabel);
+        if (num_bytes > expectedBytes) {
+            std::ostringstream oss;
+            oss << "Number of bytes per pixel in pixels is greater than expected. Received: " << num_bytes/(dims[0] * dims[1]) << ", Expected: " << self->getBytesPerPixel(slmLabel);
+            throw CMMError(oss.str().c_str());
+        }
+
         if (PyArray_TYPE(np_pixels) == NPY_UINT8 && nd == 2) {
             // For 2D 8-bit array, cast integers directly to unsigned char
             std::vector<unsigned char> vec_pixels(expectedWidth * expectedHeight);
